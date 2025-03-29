@@ -32,13 +32,10 @@ def play():
 
 @app.route('/stop')
 def stop():
+    print(f"Current VLC state before stopping: {player.get_state()}")  # Debugging
     player.stop()
-    
-    # Wait until the player state is 'Stopped'
-    while player.get_state() != vlc.State.Stopped:
-        time.sleep(0.1)  # Poll every 100ms
-    
-    print("VLC instance stopped playing the stream.")  # Print to console
+    time.sleep(1)  # Give it some time to transition
+    print(f"Current VLC state after stopping: {player.get_state()}")  # Debugging
     return "Stopped stream"
 
 if __name__ == '__main__':
