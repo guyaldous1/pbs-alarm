@@ -1,28 +1,49 @@
 from flask import Flask
-import vlc
-import time  # Add this import for polling
+import requests
+from pydub import AudioSegment
+import simpleaudio
+import io
+import logging
 
-url = 'https://playerservices.streamtheworld.com/api/livestream-redirect/3PBS_FMAAC.m3u8'
+# url = 'https://playerservices.streamtheworld.com/api/livestream-redirect/3PBS_FMAAC.m3u8'
+urlaac = 'https://23193.live.streamtheworld.com/3PBS_FMAACHIGH.aac?dist=3pbswebsite'
 
-class VLCPlayer:
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+class AACPlayer:
     def __init__(self, url):
-        self.instance = vlc.Instance('--input-repeat=-1', '--fullscreen')
-        self.player = self.instance.media_player_new()
-        self.media = self.instance.media_new(url)
-        self.player.set_media(self.media)
+        self.url = url
+        self.play_obj = None
+
+    def fetch_stream(self):
+        response = requests.get(self.url, stream=True)
+        response.raise_for_status()
+        # Read a chunk of the stream for playback (e.g., first 1MB)
+        data = response.raw.read(1024 * 1024)
+        return data
 
     def play(self):
-        self.player.play()
-        while self.player.get_state() != vlc.State.Playing:
-            time.sleep(0.1)
+        try:
+            audio_data = self.fetch_stream()
+            audio = AudioSegment.from_file(io.BytesIO(audio_data), format="aac")
+            self.play_obj = simpleaudio.play_buffer(
+                audio.raw_data,
+                num_channels=audio.channels,
+                bytes_per_sample=audio.sample_width,
+                sample_rate=audio.frame_rate
+            )
+            logger.info("Playback started.")
+        except Exception as e:
+            logger.error(f"Playback error: {e}")
+            raise
 
     def stop(self):
-        self.player.stop()
-        while self.player.get_state() != vlc.State.Stopped:
-            time.sleep(0.1)
+        if self.play_obj and self.play_obj.is_playing():
+            self.play_obj.stop()
+            logger.info("Playback stopped.")
 
-# Instantiate VLCPlayer globally
-vlc_player = VLCPlayer('https://playerservices.streamtheworld.com/api/livestream-redirect/3PBS_FMAAC.m3u8')
+aac_player = AACPlayer(urlaac)
 
 app = Flask(__name__)
 
@@ -31,23 +52,18 @@ def home():
     return "Hello, World!"
 
 @app.route('/play')
-def play():
-    vlc_player.play()
-    print("VLC instance started playing the stream.")  # Print to console
-    return "Playing stream"
+def play_stream():
+    try:
+        aac_player.play()
+        return "Playing AAC stream"
+    except Exception as e:
+        logger.error(f"Error in /play endpoint: {e}")
+        return f"Error: {e}"
 
 @app.route('/stop')
-def stop():
-    # Log the state of the player before stopping
-    print(f"Player state before stopping: {vlc_player.player.get_state()}")
-    
-    vlc_player.stop()
-    
-    # Log the state of the player after stopping
-    print(f"Player state after stopping: {vlc_player.player.get_state()}")
-    
-    print("VLC instance stopped playing the stream.")  # Print to console
-    return "Stopped stream"
+def stop_stream():
+    aac_player.stop()
+    return "Stopped playing stream"
 
 if __name__ == '__main__':
-    app.run(host='127.0.0.1', port=5000,debug=True)
+    app.run(host='127.0.0.1', port=5000, debug=True)
