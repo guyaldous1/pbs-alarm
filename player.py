@@ -2,8 +2,10 @@ from flask import Flask
 import vlc
 import time  # Add this import for polling
 
-url = 'https://playerservices.streamtheworld.com/api/livestream-redirect/3PBS_FMAAC.m3u8'
-urlaac = 'https://23193.live.streamtheworld.com/3PBS_FMAACHIGH.aac?dist=3pbswebsite'
+# url = 'https://playerservices.streamtheworld.com/api/livestream-redirect/3PBS_FMAAC.m3u8'
+# urlaac = 'https://23193.live.streamtheworld.com/3PBS_FMAACHIGH.aac?dist=3pbswebsite'
+urlnew = 'https://14533.live.streamtheworld.com/3PBS_FMAAC_SC'
+
 
 class VLCPlayer:
     def __init__(self, url):
@@ -23,9 +25,7 @@ class VLCPlayer:
             time.sleep(0.1)
 
 # Instantiate VLCPlayer globally
-vlc_player = VLCPlayer('https://playerservices.streamtheworld.com/api/livestream-redirect/3PBS_FMAAC.m3u8')
-
-
+vlc_player = VLCPlayer(urlnew)
 
 app = Flask(__name__)
 

@@ -8,7 +8,11 @@ import logging
 # url = 'https://playerservices.streamtheworld.com/api/livestream-redirect/3PBS_FMAAC.m3u8'
 urlaac = 'https://23193.live.streamtheworld.com/3PBS_FMAACHIGH.aac?dist=3pbswebsite'
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S"
+)
 logger = logging.getLogger(__name__)
 
 class AACPlayer:
@@ -54,6 +58,7 @@ def home():
 @app.route('/play')
 def play_stream():
     try:
+        logger.info("Playback requested.")
         aac_player.play()
         return "Playing AAC stream"
     except Exception as e:
