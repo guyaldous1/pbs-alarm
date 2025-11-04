@@ -21,10 +21,19 @@ GPIO.setmode(GPIO.BCM)  # Use BCM GPIO numbering
 GPIO.setup(LED_PIN, GPIO.OUT)           # Initialize the LED pin as an output
 GPIO.setup(BUTTON_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)  # Initialize the pushbutton pin as a pull-up input
 
-
 class VLCPlayer:
     def __init__(self, url):
-        self.instance = vlc.Instance('--input-repeat=-1', '--fullscreen')
+        # We are adding more flags to optimize for the Pi
+        vlc_args = [
+            '--input-repeat=-1',     # Loop playback
+            '--fullscreen',          # Fullscreen (though no video)
+            '--no-video',            # Explicitly disable video processing
+            '--aout=alsa',           # Force the ALSA audio output driver
+            '--audio-resampler=trivial', # Use the simplest (lowest CPU) resampler
+            '--network-caching=10000' # Double the cache to 10 seconds, just in case
+        ]
+
+        self.instance = vlc.Instance(" ".join(vlc_args))
         self.player = self.instance.media_player_new()
         self.media = self.instance.media_new(url)
         self.player.set_media(self.media)
@@ -38,9 +47,14 @@ class VLCPlayer:
         self.player.stop()
         while self.player.get_state() != vlc.State.Stopped:
             time.sleep(0.1)
+    
+    def isplaying(self):
+        return self.player.get_state() == vlc.State.Playing
 
 # Instantiate VLCPlayer globally
 vlc_player = VLCPlayer(urlnew)
+
+
 
 ## Run the button
 try:
@@ -63,6 +77,7 @@ try:
                     vlc_player.stop()
                 # Control LED according to the toggled state
                 GPIO.output(LED_PIN, led_state)
+                print(vlc_player.isplaying())
 
             else:  # Button is released
                 print("The button is released!")
